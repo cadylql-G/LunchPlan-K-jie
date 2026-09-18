@@ -1,9 +1,11 @@
 /* =========================================================
-   LUNCH PLAN — app.js  (v2)
+   LUNCH PLAN — app.js  (v2.1 - Step 1 Lock & Persistence)
    Features:
     - TheMealDB API integration (real photos + recipes)
     - Hierarchical category accordion (Step 1)
-    - Day-swap mode (Step 3)
+    - LocalStorage persistence for custom dishes & selection
+    - Step 3 replacement strictly locked to Step 1 selected recipes
+    - Drag & drop day swap (Step 3)
     - Copy-to-clipboard shopping list (Step 4)
    ========================================================= */
 
@@ -32,40 +34,40 @@ const ALLERGEN_KEYWORDS_EN = {
 };
 
 // ============================================================
-// LOCAL RECIPES
+// LOCAL RECIPES (Initial Default)
 // ============================================================
-const LOCAL_RECIPES = [
+const DEFAULT_LOCAL_RECIPES = [
   // ─── SANDWICHES ───
   {
-    id:'loc_blt', name:'BLT Bagel', nameZh:'BLT 培根生菜番茄贝果',
+    id:'loc_blt', name:'BLT Bagel', nameZh:'BLT 培根生菜番茄贝果 / BLT Bagel',
     catId:'sandwich', emoji:'🥯', time:'10 min', calories:480,
     ingredients:[{name:'贝果面包',amount:'1个'},{name:'培根',amount:'3片'},
                  {name:'生菜',amount:'适量'},{name:'番茄',amount:'2片'},{name:'蛋黄酱',amount:'1勺'}],
     allergens:['gluten','egg'], source:'local'
   },
   {
-    id:'loc_tuna', name:'Tuna Sandwich', nameZh:'金枪鱼三明治',
+    id:'loc_tuna', name:'Tuna Sandwich', nameZh:'金枪鱼三明治 / Tuna Sandwich',
     catId:'sandwich', emoji:'🥪', time:'8 min', calories:390,
     ingredients:[{name:'吐司',amount:'2片'},{name:'金枪鱼罐头',amount:'1罐'},
                  {name:'洋葱',amount:'1/4个'},{name:'芹菜',amount:'1根'},{name:'蛋黄酱',amount:'2勺'}],
     allergens:['seafood','egg','gluten'], source:'local'
   },
   {
-    id:'loc_ham', name:'Ham & Cheese', nameZh:'火腿芝士三明治',
+    id:'loc_ham', name:'Ham & Cheese', nameZh:'火腿芝士三明治 / Ham & Cheese',
     catId:'sandwich', emoji:'🧀', time:'8 min', calories:430,
     ingredients:[{name:'法棍',amount:'半根'},{name:'火腿片',amount:'3片'},
                  {name:'车达芝士',amount:'2片'},{name:'芥末酱',amount:'适量'},{name:'生菜',amount:'适量'}],
     allergens:['gluten','dairy'], source:'local'
   },
   {
-    id:'loc_avo', name:'Avocado Egg Toast', nameZh:'牛油果鸡蛋厚吐司',
+    id:'loc_avo', name:'Avocado Egg Toast', nameZh:'牛油果鸡蛋厚吐司 / Avocado Egg Toast',
     catId:'sandwich', emoji:'🥑', time:'12 min', calories:420,
     ingredients:[{name:'厚切吐司',amount:'2片'},{name:'牛油果',amount:'1个'},
                  {name:'鸡蛋',amount:'2个'},{name:'红辣椒片',amount:'少许'},{name:'柠檬汁',amount:'少许'}],
     allergens:['gluten','egg'], source:'local'
   },
   {
-    id:'loc_club', name:'Club Sandwich', nameZh:'总汇三明治',
+    id:'loc_club', name:'Club Sandwich', nameZh:'总汇三明治 / Club Sandwich',
     catId:'sandwich', emoji:'🥪', time:'15 min', calories:550,
     ingredients:[{name:'三层吐司',amount:'3片'},{name:'鸡胸肉',amount:'100g'},
                  {name:'培根',amount:'3片'},{name:'番茄',amount:'2片'},
@@ -73,7 +75,7 @@ const LOCAL_RECIPES = [
     allergens:['gluten','egg'], source:'local'
   },
   {
-    id:'loc_cap', name:'Caprese Panini', nameZh:'卡普雷塞帕尼尼',
+    id:'loc_cap', name:'Caprese Panini', nameZh:'卡普雷塞帕尼尼 / Caprese Panini',
     catId:'sandwich', emoji:'🥪', image: 'https://images.unsplash.com/photo-1528736235302-52922df5c122?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', time:'15 min', calories:460,
     ingredients:[{name:'恰巴塔面包',amount:'1个'},{name:'马苏里拉',amount:'100g'},
                  {name:'番茄',amount:'3片'},{name:'罗勒叶',amount:'适量'},{name:'橄榄油',amount:'2勺'}],
@@ -82,35 +84,35 @@ const LOCAL_RECIPES = [
 
   // ─── CHINESE BENTO ───
   {
-    id:'loc_beef_rice', name:'Japanese Beef Rice', nameZh:'日式肥牛饭',
+    id:'loc_beef_rice', name:'Japanese Beef Rice', nameZh:'日式肥牛饭 / Japanese Beef Rice',
     catId:'chinese', emoji:'🍚', time:'20 min', calories:580,
     ingredients:[{name:'肥牛片',amount:'200g'},{name:'米饭',amount:'1碗'},
                  {name:'洋葱',amount:'半个'},{name:'酱油',amount:'3勺'},{name:'味醂',amount:'2勺'}],
     allergens:['beef','soy','gluten'], source:'local'
   },
   {
-    id:'loc_mapo', name:'Mapo Tofu', nameZh:'麻婆豆腐饭',
+    id:'loc_mapo', name:'Mapo Tofu', nameZh:'麻婆豆腐饭 / Mapo Tofu',
     catId:'chinese', emoji:'🫕', time:'20 min', calories:490,
     ingredients:[{name:'豆腐',amount:'300g'},{name:'猪肉末',amount:'100g'},
                  {name:'米饭',amount:'1碗'},{name:'豆瓣酱',amount:'2勺'},{name:'花椒',amount:'少许'}],
     allergens:['soy','gluten'], source:'local'
   },
   {
-    id:'loc_charsiu', name:'Char Siu Rice', nameZh:'叉烧饭',
+    id:'loc_charsiu', name:'Char Siu Rice', nameZh:'叉烧饭 / Char Siu Rice',
     catId:'chinese', emoji:'🍖', time:'15 min', calories:560,
     ingredients:[{name:'叉烧肉',amount:'150g'},{name:'米饭',amount:'1碗'},
                  {name:'菜心',amount:'100g'},{name:'蚝油',amount:'1勺'},{name:'生抽',amount:'2勺'}],
     allergens:['soy','gluten'], source:'local'
   },
   {
-    id:'loc_kungpao', name:'Kung Pao Chicken', nameZh:'宫保鸡丁便当',
+    id:'loc_kungpao', name:'Kung Pao Chicken', nameZh:'宫保鸡丁便当 / Kung Pao Chicken',
     catId:'chinese', emoji:'🌶️', time:'25 min', calories:520,
     ingredients:[{name:'鸡胸肉',amount:'200g'},{name:'花生',amount:'50g'},
                  {name:'干辣椒',amount:'适量'},{name:'米饭',amount:'1碗'},{name:'花椒',amount:'少许'}],
     allergens:['nut','soy','gluten'], source:'local'
   },
   {
-    id:'loc_lurou', name:'Lu Rou Fan', nameZh:'台式卤肉饭',
+    id:'loc_lurou', name:'Lu Rou Fan', nameZh:'台式卤肉饭 / Lu Rou Fan',
     catId:'chinese', emoji:'🐷', time:'90 min', calories:620,
     ingredients:[{name:'猪五花',amount:'300g'},{name:'米饭',amount:'1碗'},
                  {name:'卤蛋',amount:'1个'},{name:'生抽',amount:'3勺'},{name:'冰糖',amount:'适量'}],
@@ -161,57 +163,91 @@ const LOCAL_RECIPES = [
     ingredients:[{name:'番茄',amount:'3个'},{name:'淡奶油',amount:'50ml'},{name:'法棍',amount:'半根'}],
     allergens:['dairy','gluten'], source:'local'
   },
+  {
+    id:'loc_croissant', name:'French Croissant', nameZh:'可颂 / French Croissant',
+    catId:'french', emoji:'🥐', image:'https://images.unsplash.com/photo-1555507036-ab1f4038808a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', time:'5 min', calories:270,
+    ingredients:[{name:'黄油可颂面包',amount:'1个'},{name:'果酱/黄油',amount:'适量'}],
+    allergens:['dairy','gluten'], source:'local'
+  },
 
   // ─── ITALIAN ───
   {
-    id:'loc_bolog', name:'Spaghetti Bolognese', nameZh:'意大利肉酱意面',
+    id:'loc_bolog', name:'Spaghetti Bolognese', nameZh:'意大利肉酱意面 / Spaghetti Bolognese',
     catId:'italian', emoji:'🍝', time:'35 min', calories:580,
     ingredients:[{name:'意面',amount:'100g'},{name:'牛肉末',amount:'150g'},
                  {name:'番茄罐头',amount:'1罐'},{name:'洋葱',amount:'半个'},{name:'帕玛森芝士',amount:'30g'}],
     allergens:['gluten','dairy','beef'], source:'local'
   },
   {
-    id:'loc_carb', name:'Spaghetti Carbonara', nameZh:'卡邦尼培根蛋黄意面',
+    id:'loc_carb', name:'Spaghetti Carbonara', nameZh:'卡邦尼培根蛋黄意面 / Spaghetti Carbonara',
     catId:'italian', emoji:'🥚', time:'20 min', calories:620,
     ingredients:[{name:'意面',amount:'100g'},{name:'培根',amount:'80g'},
                  {name:'蛋黄',amount:'3个'},{name:'帕玛森芝士',amount:'50g'},{name:'黑胡椒',amount:'适量'}],
     allergens:['gluten','egg','dairy'], source:'local'
   },
   {
-    id:'loc_pesto', name:'Pesto Pasta', nameZh:'罗勒青酱意面',
+    id:'loc_pesto', name:'Pesto Pasta', nameZh:'罗勒青酱意面 / Pesto Pasta',
     catId:'italian', emoji:'🌿', time:'15 min', calories:490,
     ingredients:[{name:'螺旋意面',amount:'100g'},{name:'罗勒香蒜酱',amount:'3勺'},
                  {name:'樱桃番茄',amount:'100g'},{name:'帕玛森芝士',amount:'30g'},{name:'松子',amount:'20g'}],
     allergens:['gluten','dairy','nut'], source:'local'
   },
   {
-    id:'loc_arr', name:'Penne Arrabbiata', nameZh:'辣番茄管面',
+    id:'loc_arr', name:'Penne Arrabbiata', nameZh:'辣番茄管面 / Penne Arrabbiata',
     catId:'italian', emoji:'🌶️', time:'25 min', calories:440,
     ingredients:[{name:'管面',amount:'100g'},{name:'番茄罐头',amount:'1罐'},
                  {name:'大蒜',amount:'3瓣'},{name:'干辣椒',amount:'适量'},{name:'橄榄油',amount:'3勺'}],
     allergens:['gluten'], source:'local'
   },
   {
-    id:'loc_scampi', name:'Shrimp Scampi', nameZh:'蒜香虾仁意面',
+    id:'loc_scampi', name:'Shrimp Scampi', nameZh:'蒜香虾仁意面 / Shrimp Scampi',
     catId:'italian', emoji:'🍤', time:'20 min', calories:520,
     ingredients:[{name:'意面',amount:'100g'},{name:'大虾',amount:'150g'},
                  {name:'大蒜',amount:'4瓣'},{name:'白葡萄酒',amount:'50ml'},{name:'黄油',amount:'30g'}],
     allergens:['seafood','gluten','dairy'], source:'local'
   },
+
   // ─── AMERICAN ───
   {
-    id:'loc_fries', name:'French Fries', nameZh:'炸薯条',
-    catId:'american', emoji:'🍟', time:'20 min', calories:360,
+    id:'loc_fries', name:'French Fries', nameZh:'炸薯条 / French Fries',
+    catId:'american', emoji:'🍟', image:'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', time:'20 min', calories:360,
     ingredients:[{name:'马铃薯',amount:'2个'},{name:'盐',amount:'少许'},{name:'植物油',amount:'适量'}],
     allergens:[], source:'local'
   },
   {
-    id:'loc_nuggets', name:'Chicken Nuggets', nameZh:'炸鸡块',
-    catId:'american', emoji:'🍗', time:'25 min', calories:410,
+    id:'loc_nuggets', name:'Chicken Nuggets', nameZh:'炸鸡块 / Chicken Nuggets',
+    catId:'american', emoji:'🍗', image:'https://images.unsplash.com/photo-1562967914-608f82629710?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', time:'25 min', calories:410,
     ingredients:[{name:'鸡胸肉',amount:'200g'},{name:'面粉',amount:'50g'},{name:'面包糠',amount:'50g'},{name:'鸡蛋',amount:'1个'}],
     allergens:['gluten','egg'], source:'local'
   },
+  {
+    id:'loc_onion_rings', name:'Onion Rings', nameZh:'洋葱圈 / Onion Rings',
+    catId:'american', emoji:'🧅', image:'https://images.unsplash.com/photo-1639024471283-03518883512d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80', time:'15 min', calories:310,
+    ingredients:[{name:'洋葱',amount:'2个'},{name:'面粉',amount:'100g'},{name:'面包糠',amount:'80g'},{name:'鸡蛋',amount:'1个'}],
+    allergens:['gluten','egg'], source:'local'
+  }
 ];
+
+// Load saved local recipes from LocalStorage if available
+let LOCAL_RECIPES = [...DEFAULT_LOCAL_RECIPES];
+try {
+  const saved = localStorage.getItem('lunchplan_custom_recipes');
+  if (saved) {
+    const customList = JSON.parse(saved);
+    LOCAL_RECIPES = [...DEFAULT_LOCAL_RECIPES, ...customList];
+  }
+} catch (e) {
+  console.warn('LocalStorage load failed:', e);
+}
+
+function saveCustomRecipes() {
+  try {
+    const customs = LOCAL_RECIPES.filter(r => r.id.startsWith('custom_'));
+    localStorage.setItem('lunchplan_custom_recipes', JSON.stringify(customs));
+  } catch (e) {
+    console.warn('LocalStorage save failed:', e);
+  }
+}
 
 // ============================================================
 // BIG CATEGORIES CONFIG
@@ -220,7 +256,7 @@ const BIG_CATEGORIES = [
   {
     id: 'sandwich',
     icon: '🥪',
-    nameZh: '三明治 & 贝果',
+    nameZh: '三明治 & 贝果 / Sandwiches & Bagels',
     desc: 'BLT · 金枪鱼 · 火腿芝士 · 牛油果吐司',
     gradient: 'linear-gradient(135deg,#f97316,#ea580c)',
     source: 'local',
@@ -228,7 +264,7 @@ const BIG_CATEGORIES = [
   {
     id: 'chinese',
     icon: '🥟',
-    nameZh: '中式面点',
+    nameZh: '中式便当 / Chinese Bento',
     desc: '叉烧饭 · 宫保鸡丁 · 卤肉饭 · 麻婆豆腐',
     gradient: 'linear-gradient(135deg,#ef4444,#dc2626)',
     source: 'local',
@@ -236,8 +272,8 @@ const BIG_CATEGORIES = [
   {
     id: 'french',
     icon: '🥐',
-    nameZh: '法式料理',
-    desc: '番茄浓汤 · 法式炖菜 · 尼斯沙拉 · 可颂',
+    nameZh: '法式料理 / French Cuisine',
+    desc: '番茄浓汤 · 可颂 · 法式炖菜 · 尼斯沙拉',
     gradient: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
     source: 'area',
     area: 'French',
@@ -245,8 +281,8 @@ const BIG_CATEGORIES = [
   {
     id: 'american',
     icon: '🍔',
-    nameZh: '美式快餐',
-    desc: '汉堡 · 烤鸡 · BBQ 肋排 · 炸鱼',
+    nameZh: '美式快餐 / Fast Food',
+    desc: '汉堡 · 炸薯条 · 炸鸡块 · 洋葱圈',
     gradient: 'linear-gradient(135deg,#eab308,#ca8a04)',
     source: 'area',
     area: 'American',
@@ -254,7 +290,7 @@ const BIG_CATEGORIES = [
   {
     id: 'salad',
     icon: '🥗',
-    nameZh: '冷餐 & 沙拉',
+    nameZh: '冷餐 & 沙拉 / Salads & Bowls',
     desc: '凯撒 · 谷物碗 · 芒果虾仁 · 希腊沙拉',
     gradient: 'linear-gradient(135deg,#14b8a6,#0d9488)',
     source: 'local',
@@ -262,7 +298,7 @@ const BIG_CATEGORIES = [
   {
     id: 'italian',
     icon: '🍝',
-    nameZh: '意式料理',
+    nameZh: '意式料理 / Italian Pasta',
     desc: '肉酱面 · 卡邦尼 · 青酱 · 蒜香虾',
     gradient: 'linear-gradient(135deg,#ec4899,#db2777)',
     source: 'local',
@@ -271,23 +307,23 @@ const BIG_CATEGORIES = [
 
 // Allergen DB
 const ALLERGENS = [
-  { id:'gluten',  icon:'🌾', label:'麸质 / 小麦' },
-  { id:'dairy',   icon:'🥛', label:'乳制品' },
-  { id:'egg',     icon:'🥚', label:'鸡蛋' },
-  { id:'seafood', icon:'🦐', label:'海鲜' },
-  { id:'beef',    icon:'🥩', label:'牛肉' },
-  { id:'nut',     icon:'🥜', label:'坚果' },
-  { id:'soy',     icon:'🫘', label:'大豆 / 酱油' },
-  { id:'pork',    icon:'🐷', label:'猪肉' },
+  { id:'gluten',  icon:'🌾', label:'麸质 / 小麦 (Gluten)' },
+  { id:'dairy',   icon:'🥛', label:'乳制品 (Dairy)' },
+  { id:'egg',     icon:'🥚', label:'鸡蛋 (Egg)' },
+  { id:'seafood', icon:'🦐', label:'海鲜 (Seafood)' },
+  { id:'beef',    icon:'🥩', label:'牛肉 (Beef)' },
+  { id:'nut',     icon:'🥜', label:'坚果 (Nuts)' },
+  { id:'soy',     icon:'🫘', label:'大豆 / 酱油 (Soy)' },
+  { id:'pork',    icon:'🐷', label:'猪肉 (Pork)' },
 ];
 
 // Days
 const DAYS = [
-  { key:'mon', label:'周一' },
-  { key:'tue', label:'周二' },
-  { key:'wed', label:'周三' },
-  { key:'thu', label:'周四' },
-  { key:'fri', label:'周五' },
+  { key:'mon', label:'周一 / Mon' },
+  { key:'tue', label:'周二 / Tue' },
+  { key:'wed', label:'周三 / Wed' },
+  { key:'thu', label:'周四 / Thu' },
+  { key:'fri', label:'周五 / Fri' },
 ];
 
 // ============================================================
@@ -358,7 +394,7 @@ async function fetchCategoryMeals(cat) {
     // Add local fallback meals if they exist
     const localMeals = LOCAL_RECIPES.filter(r => r.catId === cat.id);
     if (localMeals.length > 0) {
-      meals = [...meals, ...localMeals];
+      meals = [...localMeals, ...meals];
     }
     
     state.categoryMeals.set(cat.id, meals);
@@ -378,7 +414,7 @@ function normalizeApiMeal(m, catId) {
     source: 'api',
     mealdbId: m.idMeal,
     name: m.strMeal,
-    nameZh: m.strMeal,
+    nameZh: `${m.strMeal}`,
     image: m.strMealThumb,
     catId,
     time: '~30 min',
@@ -478,8 +514,8 @@ function buildCategoryAccordion() {
       </div>
       <div class="cat-body" id="catBody_${cat.id}" style="display:none">
         <div class="cat-add-custom">
-          <input type="text" id="customInput_${cat.id}" placeholder="输入自定义菜名 (如：洋葱圈)" class="custom-dish-input" />
-          <button class="btn-ghost custom-dish-btn" data-cat-id="${cat.id}">添加</button>
+          <input type="text" id="customInput_${cat.id}" placeholder="输入自定义菜名 (如：洋葱圈 / Onion Rings)" class="custom-dish-input" />
+          <button class="btn-ghost custom-dish-btn" data-cat-id="${cat.id}">添加 / Add</button>
         </div>
         <div class="cat-meal-grid" id="catGrid_${cat.id}">
           <div class="loading-spinner">
@@ -516,6 +552,7 @@ function handleAddCustomDish(catId, e) {
   };
   
   LOCAL_RECIPES.push(meal);
+  saveCustomRecipes();
   
   let meals = state.categoryMeals.get(catId) || [];
   meals.unshift(meal);
@@ -589,7 +626,7 @@ function createMealCard(meal, isSelected) {
     : `<div class="card-emoji-fallback">${meal.emoji || '🍽️'}</div>`;
 
   const metaText = meal.source === 'local'
-    ? `⏱ ${meal.time} · 🔥 ${meal.calories} kcal`
+    ? `⏱ ${meal.time}${meal.calories ? ` · 🔥 ${meal.calories} kcal` : ''}`
     : `⏱ ${meal.time}`;
 
   card.innerHTML = `
@@ -633,6 +670,11 @@ function deleteMeal(mealId, catId) {
   let meals = state.categoryMeals.get(catId) || [];
   meals = meals.filter(m => m.id !== mealId);
   state.categoryMeals.set(catId, meals);
+
+  if (mealId.startsWith('custom_')) {
+    LOCAL_RECIPES = LOCAL_RECIPES.filter(m => m.id !== mealId);
+    saveCustomRecipes();
+  }
   
   if (state.selectedMeals.has(mealId)) {
     state.selectedMeals.delete(mealId);
@@ -777,7 +819,7 @@ function updateAllergenSummary() {
   const text = summary.querySelector('.summary-text');
 
   if (state.selectedAllergens.size === 0) {
-    text.textContent = `未选择忌口，所有已选 ${selected.length} 道食谱均可使用`;
+    text.textContent = `未选择忌口，所有已选 ${selected.length} 道食谱均可使用 / All ${selected.length} selected dishes available`;
     summary.style.background = 'var(--bg-glass)';
     summary.style.borderColor = 'var(--border-subtle)';
   } else {
@@ -785,12 +827,12 @@ function updateAllergenSummary() {
       .map(id => ALLERGENS.find(a => a.id === id)?.label)
       .filter(Boolean).join('、');
 
-    text.innerHTML = `🚫 已过滤含 <strong>${names}</strong> 的食谱 ${blocked} 道 · 系统将从符合条件的全部菜库中补充`;
+    text.innerHTML = `🚫 已过滤含 <strong>${names}</strong> 的食谱 ${blocked} 道`;
 
     if (passed < 5) {
       summary.style.background = 'rgba(244,63,94,0.08)';
       summary.style.borderColor = 'rgba(244,63,94,0.3)';
-      text.innerHTML += `<br><small style="color:var(--accent-rose)">⚠️ 可用食谱不足5道，系统将从所有已加载分类中补充</small>`;
+      text.innerHTML += `<br><small style="color:var(--accent-rose)">⚠️ 可用食谱不足5道，生成计划时会循环排列您选中的可用食谱 / Fewer than 5 dishes available, selected dishes will repeat</small>`;
     } else {
       summary.style.background = 'rgba(20,184,166,0.08)';
       summary.style.borderColor = 'rgba(20,184,166,0.3)';
@@ -808,20 +850,24 @@ function getAllLoadedMeals() {
 // STEP 3 — WEEK PLAN GENERATION
 // ============================================================
 function generateWeekPlan() {
-  // Preferred: selected meals passing filter
+  // STRICT REQUIREMENT: Only pick from meals selected in Step 1 that pass allergen filters
   const preferred = [...state.selectedMeals.values()].filter(mealPassesAllergenFilter);
 
-  // Fallback pool: all loaded meals passing filter
-  const allMeals = getAllLoadedMeals().filter(mealPassesAllergenFilter);
-  const extras = allMeals.filter(m => !state.selectedMeals.has(m.id));
+  let pool = shuffle([...preferred]);
 
-  const pool = shuffle([...preferred, ...extras]);
+  // If user selected fewer than 5 meals in Step 1, fallback to all loaded meals only as secondary
+  if (pool.length < 5) {
+    const allMeals = getAllLoadedMeals().filter(mealPassesAllergenFilter);
+    const extras = allMeals.filter(m => !state.selectedMeals.has(m.id));
+    pool = [...pool, ...shuffle(extras)];
+  }
+
   const plan = [];
   const usedIds = new Set();
 
   for (let i = 0; i < 5; i++) {
     let pick = pool.find(m => !usedIds.has(m.id));
-    if (!pick) pick = pool[i % Math.max(pool.length, 1)];
+    if (!pick && pool.length > 0) pick = pool[i % pool.length];
     plan.push(pick || null);
     if (pick) usedIds.add(pick.id);
   }
@@ -861,7 +907,7 @@ function buildDayCard(day, dateStr, meal, idx) {
     imgInner = `<div style="font-size:4rem;display:flex;align-items:center;justify-content:center;height:100%">${meal.emoji || '🍽️'}</div>`;
   }
 
-  const ingList = meal.ingredients.length
+  const ingList = meal.ingredients && meal.ingredients.length
     ? meal.ingredients.slice(0, 4).map(i => i.name || i).join('、') + (meal.ingredients.length > 4 ? '…' : '')
     : '（点击换一个以查看食材 / Replace to see info）';
 
@@ -873,13 +919,13 @@ function buildDayCard(day, dateStr, meal, idx) {
     <div class="day-recipe-img" id="dayImg_${idx}">${imgInner}</div>
     <div class="day-body">
       <div class="day-recipe-name">${meal.nameZh || meal.name}</div>
-      <div class="day-ingredients">🧂 ${ingList}</div>
+      <div class="day-ingredients">计时食材：${ingList}</div>
       <div class="day-meta">⏱ ${meal.time}${meal.calories ? ` · 🔥 ${meal.calories} kcal` : ''}</div>
       <button class="btn-swap">👎 换一个 (No)</button>
     </div>
   `;
 
-  // Replace with random meal
+  // Replace with random meal STRICTLY from Step 1 selections
   card.querySelector('.btn-swap').addEventListener('click', e => {
     e.stopPropagation();
     replaceRandomMeal(idx);
@@ -928,19 +974,36 @@ function performSwap(idxA, idxB) {
   showToast(`✅ ${DAYS[idxA].label} ↔ ${DAYS[idxB].label} 交换成功！/ Swapped!`);
 }
 
+// ============================================================
+// STRICT REPLACEMENT FIX: ONLY REPLACE FROM STEP 1 SELECTED MEALS
+// ============================================================
 function replaceRandomMeal(dayIdx) {
   const currentId = state.weekPlan[dayIdx]?.id;
   const otherIds = new Set(state.weekPlan.filter((_, i) => i !== dayIdx).map(m => m?.id));
 
-  const pool = getAllLoadedMeals()
-    .filter(m => mealPassesAllergenFilter(m) && m.id !== currentId && !otherIds.has(m.id));
+  // 1. Strictly filter from Step 1 user selected meals
+  const selectedMealsList = [...state.selectedMeals.values()].filter(mealPassesAllergenFilter);
+
+  if (selectedMealsList.length === 0) {
+    showToast('⚠️ 您在 Step 1 尚未勾选任何有效食谱！/ No selected recipes available.');
+    return;
+  }
+
+  // Find selected meals not currently in the 5-day plan
+  let pool = selectedMealsList.filter(m => m.id !== currentId && !otherIds.has(m.id));
 
   let pick;
   if (pool.length > 0) {
     pick = pool[Math.floor(Math.random() * pool.length)];
   } else {
-    const fallback = getAllLoadedMeals().filter(m => mealPassesAllergenFilter(m) && m.id !== currentId);
-    pick = fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)] : state.weekPlan[dayIdx];
+    // If all selected meals are already used in the 5-day plan, pick any OTHER selected meal (allow duplicate across days)
+    const fallbackPool = selectedMealsList.filter(m => m.id !== currentId);
+    if (fallbackPool.length > 0) {
+      pick = fallbackPool[Math.floor(Math.random() * fallbackPool.length)];
+    } else {
+      showToast('⚠️ 您在 Step 1 只勾选了 1 道菜，无法换成其他菜品！/ Only 1 dish selected in Step 1.');
+      return;
+    }
   }
 
   state.weekPlan[dayIdx] = pick;
@@ -959,7 +1022,7 @@ function replaceRandomMeal(dayIdx) {
     setTimeout(() => newCard.querySelector('.day-recipe-img').classList.remove('animating'), 500);
   }
 
-  showToast(`🔄 已换成：${pick.nameZh || pick.name}`);
+  showToast(`🔄 已换成您在 Step 1 勾选的：${pick.nameZh || pick.name}`);
 }
 
 function getMonday() {
@@ -1065,24 +1128,7 @@ function renderShoppingList(groups) {
     listEl.appendChild(section);
   });
 
-  $('#shoppingTotal').textContent = $$('.shopping-item').length;
-}
-
-function toggleShoppingItem(name, el) {
-  if (state.shoppingChecked.has(name)) {
-    state.shoppingChecked.delete(name);
-    el.classList.remove('checked');
-    el.querySelector('.item-checkbox').textContent = '';
-  } else {
-    state.shoppingChecked.add(name);
-    el.classList.add('checked');
-    el.querySelector('.item-checkbox').textContent = '✓';
-  }
-  updateShoppingProgress();
-}
-
-function updateShoppingProgress() {
-  const total = $$('.shopping-item').length;
+  $('#shoppingTotal').textContent = $$('.shopping-item').length; }  function toggleShoppingItem(name, el) {   if (state.shoppingChecked.has(name)) {     state.shoppingChecked.delete(name);     el.classList.remove('checked');     el.querySelector('.item-checkbox').textContent = '';   } else {     state.shoppingChecked.add(name);     el.classList.add('checked');     el.querySelector('.item-checkbox').textContent = '✓';   }   updateShoppingProgress(); }  function updateShoppingProgress() {   const total = $$('.shopping-item').length;
   const done = state.shoppingChecked.size;
   $('#shoppingDone').textContent = done;
   $('#shoppingTotal').textContent = total;
@@ -1107,7 +1153,7 @@ function renderPlanSummary() {
 
 // ─── Copy shopping list to clipboard ───
 async function copyShoppingList() {
-  let lines = ['🛒 午餐购物清单', '─'.repeat(32), ''];
+  let lines = ['🛒 午餐购物清单 / Shopping List', '─'.repeat(32), ''];
 
   $$('.shopping-category-section').forEach(section => {
     const title = section.querySelector('.shopping-category-title')?.textContent?.trim();
@@ -1218,17 +1264,8 @@ function initNavigation() {
 
   // Clear checked items
   $('#clearChecked').addEventListener('click', () => {
-    $$('.shopping-item.checked').forEach(el => {
-      state.shoppingChecked.delete(el.dataset.item);
-      el.classList.remove('checked');
-      el.querySelector('.item-checkbox').textContent = '';
-    });
-    updateShoppingProgress();
-    showToast('已清除所有勾选');
-  });
-
-  // Step nav bar
-  $$('.step-btn').forEach(btn => {
+    $$('.shopping-item.checked').forEach(el => {       state.shoppingChecked.delete(el.dataset.item);       el.classList.remove('checked');       el.querySelector('.item-checkbox').textContent = '';     });     updateShoppingProgress();     showToast('已清除所有勾选');   });    // Step nav bar   $$
+('.step-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (btn.disabled) return;
       const step = parseInt(btn.dataset.step, 10);
