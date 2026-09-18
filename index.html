@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍱 Lunch Plan — 每周午餐计划生成器</title>
+  <meta name="description" content="智能午餐计划生成器，根据你的口味和过敏源生成个性化五日午餐计划，附带购物清单。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🍱</span>
+        <span class="logo-text">LunchPlan</span>
+      </div>
+      <nav class="step-nav" id="stepNav">
+        <button class="step-btn active" id="navStep1" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">选择食谱 / Select</span>
+        </button>
+        <div class="step-connector"></div>
+        <button class="step-btn" id="navStep2" data-step="2" disabled>
+          <span class="step-num">2</span>
+          <span class="step-label">过敏忌口 / Allergies</span>
+        </button>
+        <div class="step-connector"></div>
+        <button class="step-btn" id="navStep3" data-step="3" disabled>
+          <span class="step-num">3</span>
+          <span class="step-label">周计划 / Weekly Plan</span>
+        </button>
+        <div class="step-connector"></div>
+        <button class="step-btn" id="navStep4" data-step="4" disabled>
+          <span class="step-num">4</span>
+          <span class="step-label">购物清单 / Shopping List</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ===== STEP 1: RECIPE SELECTION ===== -->
+    <section class="step-section active" id="step1">
+      <div class="section-header">
+        <div class="section-badge">Step 1</div>
+        <h1 class="section-title">告诉我您会做什么？/ Tell me what you'd like to cook</h1>
+        <p class="section-subtitle">展开分类，选择你喜欢的菜肴（至少 <strong>1 道</strong>） / Expand categories and select your favorite dishes (at least <strong>1</strong>)</p>
+      </div>
+
+      <!-- Category Accordion -->
+      <div class="category-accordion" id="categoryAccordion">
+        <!-- Dynamically populated -->
+      </div>
+
+      <!-- Sticky Selection Bar -->
+      <div class="selection-bar" id="selectionBar">
+        <div class="selection-info">
+          已选 / Selected <span class="selection-count" id="selectionCount">0</span> 道菜肴 / Dishes
+        </div>
+        <button class="btn-primary" id="step1Next" disabled>
+          下一步：过敏设置 → / Next: Allergies →
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 2: ALLERGEN SELECTION ===== -->
+    <section class="step-section" id="step2">
+      <div class="section-header">
+        <div class="section-badge">Step 2</div>
+        <h1 class="section-title">设置过敏忌口还有我不爱吃的食材 / Set Allergies, Restrictions & Dislikes</h1>
+        <p class="section-subtitle">选择你不能吃的食材，系统将自动过滤 / Select ingredients you can't eat, we'll automatically filter them out</p>
+      </div>
+
+      <div class="allergen-grid" id="allergenGrid"></div>
+
+      <div class="allergen-summary" id="allergenSummary">
+        <p class="summary-text">已过滤食谱将从你的选择中移除，系统会自动补充其他食谱 / Filtered recipes will be replaced automatically</p>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-secondary" id="step2Back">← 返回 / Back</button>
+        <button class="btn-primary" id="step2Next">生成周计划 → / Generate Plan →</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 3: WEEKLY PLAN ===== -->
+    <section class="step-section" id="step3">
+      <div class="section-header">
+        <div class="section-badge">Step 3</div>
+        <h1 class="section-title">你的五日午餐计划 / Your 5-Day Lunch Plan</h1>
+        <p class="section-subtitle">
+          拖动卡片可直接互换日期 (Drag & Drop to swap days) · 点击 <strong>👎 换一个 (No)</strong> 随机更换菜谱 (Click to replace)
+        </p>
+      </div>
+
+      <div class="week-grid" id="weekGrid"></div>
+
+      <div class="step-actions">
+        <button class="btn-secondary" id="step3Back">← 重新设置 / Reset</button>
+        <button class="btn-ghost" id="goShoppingList">查看购物清单 🛒 / View Shopping List</button>
+        <button class="btn-primary btn-primary-large" id="copyPlanList">📋 复制清单 / Copy List</button>
+      </div>
+    </section>
+
+    <!-- ===== STEP 4: SHOPPING LIST ===== -->
+    <section class="step-section" id="step4">
+      <div class="section-header">
+        <div class="section-badge">Step 4</div>
+        <h1 class="section-title">购物清单 / Shopping List</h1>
+        <p class="section-subtitle">基于你的五日计划自动汇总所需食材 / Automatically compiled based on your 5-day plan</p>
+      </div>
+
+      <div class="shopping-layout">
+        <div class="shopping-main">
+          <div class="shopping-toolbar">
+            <div class="shopping-progress">
+              <span id="shoppingDone">0</span> / <span id="shoppingTotal">0</span> 已购买 / Bought
+              <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="shopping-actions">
+              <button class="btn-ghost" id="clearChecked">清除勾选 / Clear</button>
+            </div>
+          </div>
+          <div id="shoppingList"></div>
+        </div>
+
+        <aside class="shopping-sidebar">
+          <div class="sidebar-card">
+            <h3>本周菜单 / Weekly Menu</h3>
+            <ul class="plan-summary-list" id="planSummaryList"></ul>
+          </div>
+        </aside>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-secondary" id="step4Back">← 返回计划 / Back to Plan</button>
+        <button class="btn-primary btn-primary-large" id="copyList">📋 复制清单 / Copy List</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
